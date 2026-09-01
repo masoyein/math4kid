@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="my">
 <head>
   <meta charset="UTF-8">
@@ -14,33 +13,29 @@
     select { padding: 8px 12px; font-size: 16px; border-radius: 8px; border: 1px solid #3498db; outline: none; font-weight: bold; }
     .score-board { font-size: 16px; font-weight: bold; color: #2c3e50; }
     
-    /* Grid & Draft Layout */
     .workspace { display: flex; flex-wrap: wrap; gap: 15px; justify-content: space-between; margin-top: 10px; }
     .grid-container { flex: 1; min-width: 320px; overflow-x: auto; background: #fafafa; padding: 15px; border-radius: 10px; border: 1px solid #ddd; }
     .draft-container { flex: 1.4; min-width: 380px; background: #fffde7; padding: 15px; border-radius: 10px; border: 1px solid #ffe082; overflow-x: auto; }
     
-    /* Table Styling */
     table.math-grid { border-collapse: collapse; margin: auto; }
-    table.math-grid td { width: 36px; height: 38px; text-align: center; vertical-align: middle; font-size: 18px; font-weight: bold; border: 1px solid #ccc; }
-    table.math-grid td.border-bottom { border-bottom: 2px solid #000; }
+    table.math-grid td { width: 38px; height: 40px; text-align: center; vertical-align: middle; font-size: 20px; font-weight: bold; border: 1px solid #ccc; }
+    table.math-grid td.border-bottom { border-bottom: 3px solid #000; }
     
-    /* Input Styling */
-    input.grid-input { width: 100%; height: 100%; text-align: center; font-size: 18px; font-weight: bold; border: none; background: #e8f0fe; color: #1a73e8; outline: none; }
+    input.grid-input { width: 100%; height: 100%; text-align: center; font-size: 20px; font-weight: bold; border: none; background: #e8f0fe; color: #1a73e8; outline: none; }
     input.grid-input:focus { background: #fff; box-shadow: inset 0 0 0 2px #1a73e8; }
     input.correct { background: #d4edda !important; color: #155724; }
     input.incorrect { background: #f8d7da !important; color: #721c24; }
 
-    /* Draft Table Styling */
     .draft-title { font-weight: bold; color: #f57f17; font-size: 16px; margin-bottom: 10px; border-bottom: 2px solid #fbc02d; padding-bottom: 5px; text-align: center; }
     table.draft-table { border-collapse: collapse; width: 100%; }
     table.draft-table td { padding: 6px; font-size: 13px; border: 1px solid #fff59d; background: #fff; vertical-align: middle; }
     .step-num { font-weight: bold; color: #d81b60; text-align: center; background: #fff9c4 !important; }
 
-    /* Buttons */
     .controls { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
-    .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .btn { padding: 10px 20px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
     .btn-check { background: #2ecc71; color: white; }
     .btn-next { background: #3498db; color: white; }
+    .btn-disabled { background: #b0bec5 !important; color: #78909c !important; cursor: not-allowed !important; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -65,12 +60,10 @@
   </div>
 
   <div class="workspace">
-    <!-- Grid for Calculation (Blank fields for student) -->
     <div class="grid-container">
       <table class="math-grid" id="mathGrid"></table>
     </div>
 
-    <!-- Step-by-Step Draft Table Guidance -->
     <div class="draft-container">
       <div class="draft-title">အကြမ်းတွက် လမ်းညွှန်ချက်များ</div>
       <div id="draftContent"></div>
@@ -79,7 +72,7 @@
 
   <div class="controls">
     <button class="btn btn-check" onclick="checkAnswer()">အဖြေစစ်မည်</button>
-    <button class="btn btn-next" onclick="nextQuestion()">နောက်တစ်ပုဒ် ➔</button>
+    <button class="btn btn-next btn-disabled" id="nextBtn" onclick="nextQuestion()" disabled>နောက်တစ်ပုဒ် ➔</button>
   </div>
 </div>
 
@@ -89,7 +82,6 @@ function toMM(n) {
   return n.toString().split('').map(d => mmDigits[d] || d).join('');
 }
 
-// Convert any input (Myanmar or English digit) to standard English digit string
 function normalizeDigit(val) {
   if (!val) return '';
   let str = val.trim();
@@ -119,6 +111,7 @@ const LEVELS = {
 let currentLevel = 1;
 let currentQuestionIndex = 1;
 let num1 = 0, num2 = 0;
+let isCurrentSolved = false;
 
 function changeLevel() {
   currentLevel = parseInt(document.getElementById('levelSelect').value);
@@ -127,6 +120,11 @@ function changeLevel() {
 }
 
 function nextQuestion() {
+  if (!isCurrentSolved) {
+    alert('ဤပုဒ်စာကို မှန်ကန်အောင် အရင်ဖြေဆိုပါ!');
+    return;
+  }
+
   if (currentQuestionIndex < 10) {
     currentQuestionIndex++;
     loadQuestion();
@@ -136,6 +134,11 @@ function nextQuestion() {
 }
 
 function loadQuestion() {
+  isCurrentSolved = false;
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.disabled = true;
+  nextBtn.classList.add('btn-disabled');
+
   document.getElementById('qIndex').innerText = toMM(currentQuestionIndex);
   const cfg = LEVELS[currentLevel];
   num1 = Math.floor(Math.random() * (cfg.maxA - cfg.minA + 1)) + cfg.minA;
@@ -154,7 +157,7 @@ function renderGrid() {
   const d2List = str2.split('').map(Number);
   
   const totalSum = num1 * num2;
-  const maxCols = Math.max((num1 * num2).toString().length + 1, str1.length + 1, str2.length + 2);
+  const maxCols = totalSum.toString().length + 1;
 
   // Row 1: Num 1
   let r1 = grid.insertRow();
@@ -164,7 +167,7 @@ function renderGrid() {
   let r2 = grid.insertRow();
   fillRowText(r2, 'x' + str2, maxCols, true);
 
-  // Intermediate Product Rows (Input Boxes)
+  // Partial Product Rows
   if (str2.length > 1) {
     d2List.reverse().forEach((d, rIdx) => {
       let r = grid.insertRow();
@@ -173,7 +176,7 @@ function renderGrid() {
     });
   }
 
-  // Final Sum Row (Input Boxes)
+  // Final Sum Row
   let rFinal = grid.insertRow();
   fillRowInput(rFinal, totalSum.toString(), maxCols, false);
 }
@@ -275,14 +278,21 @@ function checkAnswer() {
     }
   });
 
+  const nextBtn = document.getElementById('nextBtn');
+
   if (allCorrect) {
-    alert('ဂုဏ်ယူပါတယ်။ အဖြေအားလုံး မှန်ကန်ပါတယ်! 🎉');
+    isCurrentSolved = true;
+    nextBtn.disabled = false;
+    nextBtn.classList.remove('btn-disabled');
+    alert('ဂုဏ်ယူပါတယ်။ အဖြေအားလုံး မှန်ကန်ပါတယ်! 🎉 နောက်တစ်ပုဒ်သို့ ဆက်သွားနိုင်ပါပြီ။');
   } else {
+    isCurrentSolved = false;
+    nextBtn.disabled = true;
+    nextBtn.classList.add('btn-disabled');
     alert('အဖြေအချို့ မှားယွင်းနေပါသည်။ အနီရောင်ပြထားသော အကွက်များကို ပြန်လည်စစ်ဆေးပါ။');
   }
 }
 
-// Initial Load
 loadQuestion();
 </script>
 
